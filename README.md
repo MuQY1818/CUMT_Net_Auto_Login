@@ -1,7 +1,7 @@
 # CUMT 校园网自动登录工具
 
-![版本](https://img.shields.io/github/v/release/MuQY1818/CUMT_Net_Auto_Login?include_prereleases)
-![许可证](https://img.shields.io/github/license/MuQY1818/CUMT_Net_Auto_Login)
+[![版本](https://img.shields.io/github/v/release/MuQY1818/CUMT_Net_Auto_Login?include_prereleases)](https://github.com/MuQY1818/CUMT_Net_Auto_Login/releases)
+[![许可证](https://img.shields.io/github/license/MuQY1818/CUMT_Net_Auto_Login)](https://github.com/MuQY1818/CUMT_Net_Auto_Login/blob/main/LICENSE)
 
 这是一个为中国矿业大学（CUMT）学生开发的校园网自动登录工具。它能够帮助您快速、方便地登录校园网，支持多种运营商，并提供自动登录和开机自启动功能。
 
