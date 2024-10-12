@@ -50,7 +50,7 @@ class AutoLoginApp(QMainWindow):
         # 设置更新定时器
         self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.check_for_updates)
-        self.update_timer.start(3600000)  # 每小时检查一次更新
+        self.update_timer.start(10)  # 每10s检查一次更新
 
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint)
