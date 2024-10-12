@@ -347,7 +347,7 @@ class AutoLoginApp(QMainWindow):
         try:
             response = requests.get("https://api.github.com/repos/MuQY1818/CUMT_Net_Auto_Login/releases/latest")
             latest_version = response.json()["tag_name"]
-            current_version = "v1.0.1"  # 当前版本
+            current_version = "v1.0.2"  # 当前版本
             if latest_version > current_version:
                 QMessageBox.information(self, "更新可用", f"新版本 {latest_version} 可用。请访问 GitHub 页面下载最新版本。")
         except Exception as e:
