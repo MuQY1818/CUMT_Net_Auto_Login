@@ -1,0 +1,1 @@
+pyinstaller --clean --windowed --icon=connection.ico --add-data "connection.ico;." --distpath D:\Output auto_login_app.py

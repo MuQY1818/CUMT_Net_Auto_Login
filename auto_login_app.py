@@ -37,10 +37,17 @@ class AutoLoginApp(QMainWindow):
         self.session = requests.Session()
         self.moveFlag = False
         self.movePosition = None
-        QTimer.singleShot(0, self.initUI)
-        QTimer.singleShot(0, self.loadSettings)
+        
+        # 初始化 UI
+        self.initUI()
+    
+    
+        # 加载设置和检查登录状态
+        self.loadSettings()
         QTimer.singleShot(100, self.check_login_status)
         QTimer.singleShot(200, self.auto_login_if_needed)
+        
+        # 设置更新定时器
         self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.check_for_updates)
         self.update_timer.start(3600000)  # 每小时检查一次更新
@@ -89,7 +96,41 @@ class AutoLoginApp(QMainWindow):
                 if label_text == '密码:': widget.setEchoMode(QLineEdit.Password)
             elif isinstance(widget, QComboBox):
                 widget.addItems(['校园网', '中国电信', '中国移动', '中国联通'])
-                widget.setStyleSheet("QComboBox { border: 1px solid #CCCCCC; border-radius: 4px; padding: 5px; padding-right: 20px; background-color: #F5F5F5; } QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border-left: 1px solid #CCCCCC; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } QComboBox::down-arrow { image: none; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #333333; width: 0; height: 0; margin-right: 5px; }")
+                widget.setFixedWidth(180)  # 设置固定宽度
+                widget.setStyleSheet("""
+                    QComboBox {
+                        border: 1px solid #CCCCCC;
+                        border-radius: 4px;
+                        padding: 5px;
+                        padding-right: 20px;
+                        background-color: #F5F5F5;
+                    }
+                    QComboBox::drop-down {
+                        subcontrol-origin: padding;
+                        subcontrol-position: top right;
+                        width: 20px;
+                        border-left: 1px solid #CCCCCC;
+                        border-top-right-radius: 3px;
+                        border-bottom-right-radius: 3px;
+                    }
+                    QComboBox::down-arrow {
+                        image: none;
+                    }
+                """)
+                # 添加自定义下拉箭头
+                arrow_label = QLabel("▼", widget)
+                arrow_label.setStyleSheet("""
+                    color: #333333;
+                    background: transparent;
+                    padding: 0px 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                """)
+                arrow_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+                widget.setLayout(QHBoxLayout())
+                widget.layout().setContentsMargins(0, 0, 0, 0)
+                widget.layout().addWidget(QLabel(), 1)  # 占位
+                widget.layout().addWidget(arrow_label)
             layout.addWidget(widget)
             setattr(self, widget_attr[0], widget)
             content_layout.addLayout(layout)
@@ -106,7 +147,6 @@ class AutoLoginApp(QMainWindow):
         self.logout_button = QPushButton('注销')
         self.logout_button.setStyleSheet("QPushButton { background-color: #f44336; color: white; border: none; border-radius: 4px; padding: 10px; font-size: 16px; } QPushButton:hover { background-color: #d32f2f; }")
         self.logout_button.clicked.connect(self.logout)
-        self.logout_button.setEnabled(False)
         content_layout.addWidget(self.logout_button)
         container_layout.addWidget(content_widget)
         main_layout.addWidget(container)
@@ -137,10 +177,6 @@ class AutoLoginApp(QMainWindow):
         self.auto_start_check.setChecked(settings.value('autostart', False, type=bool))
         self.auto_login_check.setChecked(settings.value('auto_login', False, type=bool))
         self.auto_login = settings.value('auto_login', False, type=bool)
-        if self.verify_login(): self.update_ui_after_login()
-        else:
-            self.login_button.setEnabled(True)
-            self.logout_button.setEnabled(False)
 
     def saveSettings(self):
         settings = QSettings('AutoLoginApp', 'Settings')
@@ -162,12 +198,8 @@ class AutoLoginApp(QMainWindow):
                 else: reg.DeleteValue(registry_key, app_name)
         except WindowsError: print("无法设置开机自启")
 
-    def update_ui_after_login(self):
-        self.login_button.setEnabled(False)
-        self.logout_button.setEnabled(True)
-
     def login(self):
-        self.session = requests.Session()
+        # 移除已登录的检查，直接执行登录操作
         username = self.student_id_input.text()
         password = self.password_input.text()
         operator = self.operator_input.currentText()
@@ -196,7 +228,6 @@ class AutoLoginApp(QMainWindow):
                 if result == '1':
                     if self.verify_login():
                         QMessageBox.information(self, "成功", "登录成功")
-                        self.update_ui_after_login()
                         if self.auto_start:
                             self.close()
                             sys.exit(0)
@@ -208,7 +239,6 @@ class AutoLoginApp(QMainWindow):
                         return
                     elif ret_code == '2' or "在线数量超过限制" in msg:
                         QMessageBox.information(self, "提示", "您已经登录过了")
-                        self.update_ui_after_login()
                         if self.auto_start:
                             self.close()
                             sys.exit(0)
@@ -218,7 +248,15 @@ class AutoLoginApp(QMainWindow):
             except Exception as e: print(f"发生未知错误: {str(e)}")
         QMessageBox.warning(self, "错误", "登录失败，请检查网络连接或稍后重试")
 
-    def logout(self):
+        # 登录操作完成后立即检查状态
+        QTimer.singleShot(100, self.check_login_status)
+
+    def logout(self, silent=False):
+        if not self.verify_login():
+            if not silent:
+                QMessageBox.information(self, "提示", "您当前未登录")
+            return
+
         try:
             timestamp = int(time.time() * 1000)
             callback = f"dr{timestamp}"
@@ -238,16 +276,24 @@ class AutoLoginApp(QMainWindow):
             json_str = response.text[response.text.index('(') + 1 : response.text.rindex(')')]
             result = json.loads(json_str)
             if result.get('result') == '1':
-                QMessageBox.information(self, "成功", "已成功注销")
+                if not silent:
+                    QMessageBox.information(self, "成功", "已成功注销")
                 self.clear_login_status()
             else:
-                QMessageBox.warning(self, "错误", f"注销失败: {result.get('msg', '未知错误')}")
+                if not silent:
+                    QMessageBox.warning(self, "错误", f"注销失败: {result.get('msg', '未知错误')}")
         except requests.RequestException as e:
-            QMessageBox.warning(self, "错误", f"注销时发生网络错误: {str(e)}")
+            if not silent:
+                QMessageBox.warning(self, "错误", f"注销时发生网络错误: {str(e)}")
         except json.JSONDecodeError as e:
-            QMessageBox.warning(self, "错误", f"解析响应时发生错误: {str(e)}")
+            if not silent:
+                QMessageBox.warning(self, "错误", f"解析响应时发生错误: {str(e)}")
         except Exception as e:
-            QMessageBox.warning(self, "错误", f"注销时发生未知错误: {str(e)}")
+            if not silent:
+                QMessageBox.warning(self, "错误", f"注销时发生未知错误: {str(e)}")
+
+        # 注销操作完成后立即检查状态
+        QTimer.singleShot(100, self.check_login_status)
 
     def get_user_ip(self):
         try:
@@ -267,20 +313,32 @@ class AutoLoginApp(QMainWindow):
 
     def clear_login_status(self):
         self.session = requests.Session()
-        self.login_button.setEnabled(True)
-        self.logout_button.setEnabled(False)
+        # 不再禁用登录和注销按钮
+        # self.login_button.setEnabled(True)
+        # self.logout_button.setEnabled(False)
 
     def verify_login(self):
         try:
             response = self.session.get("http://10.2.5.251/", timeout=5)
-            print("Login verification response:", response.text)
             return "已登录" in response.text or "注销" in response.text or "在线数量超过限制" in response.text
         except Exception as e:
             print("Login verification error:", str(e))
             return False
 
     def check_login_status(self):
-        if self.verify_login(): self.update_ui_after_login()
+        is_logged_in = self.verify_login()
+        
+        # 移除状态显示
+        # if is_logged_in:
+        #     status_text = "已登录"
+        # else:
+        #     status_text = "未登录"
+        
+        # self.statusBar().showMessage(f"当前状态: {status_text}")
+        
+        # 始终启用登录和注销按钮
+        self.login_button.setEnabled(True)
+        self.logout_button.setEnabled(True)
 
     def auto_login_if_needed(self):
         if self.auto_login: self.login()
