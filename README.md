@@ -31,6 +31,9 @@
 - **自动登录**：勾选此选项可让程序在启动时自动尝试登录。
 - **登录按钮**：点击此按钮进行登录操作。
 
+![image](https://github.com/user-attachments/assets/f7addfd9-c04d-41df-bd72-1ff21e814ded)
+
+
 ## ⚠️ 注意事项
 
 - 请确保您的电脑已连接到校园网络。
